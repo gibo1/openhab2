@@ -34,6 +34,7 @@ import org.eclipse.smarthome.core.types.State;
 import org.eclipse.smarthome.core.types.Type;
 import org.openhab.binding.knx.GroupAddressListener;
 import org.openhab.binding.knx.IndividualAddressListener;
+import org.openhab.binding.knx.handler.KNXBridgeBaseThingHandler.EventSource;
 import org.openhab.binding.knx.internal.channel.KNXChannelSelectorProxy;
 import org.openhab.binding.knx.internal.channel.KNXChannelSelectorProxy.KNXChannelSelector;
 import org.openhab.binding.knx.internal.dpt.KNXCoreTypeMapper;
@@ -295,11 +296,16 @@ public class KNXGenericThingHandler extends BaseThingHandler
     @Override
     public void handleUpdate(ChannelUID channelUID, State newState) {
 
-        logger.trace("Handling a State ({}) update for Channel {}", newState, channelUID.getId());
-
         if (((KNXBridgeBaseThingHandler) getBridge().getHandler()) == null) {
             logger.warn("KNX bridge handler not found. Cannot handle updates without bridge.");
+        }
+
+        logger.trace("Handling a State ({}) update for Channel {}", newState, channelUID.getId());
+
+        if (((KNXBridgeBaseThingHandler) getBridge().getHandler()).hasEvent(channelUID, newState, 50, 500)) {
             return;
+        } else {
+            ((KNXBridgeBaseThingHandler) getBridge().getHandler()).logEvent(channelUID, newState);
         }
 
         Configuration channelConfiguration = getThing().getChannel(channelUID.getId()).getConfiguration();
@@ -347,11 +353,16 @@ public class KNXGenericThingHandler extends BaseThingHandler
     @Override
     public void handleCommand(ChannelUID channelUID, Command command) {
 
+        if (((KNXBridgeBaseThingHandler) getBridge().getHandler()) == null) {
+            logger.warn("KNX bridge handler not found. Cannot handle commands without bridge.");
+        }
+
         logger.trace("Handling a Command ({})  for Channel {}", command, channelUID.getId());
 
-        if (((KNXBridgeBaseThingHandler) getBridge().getHandler()) == null) {
-            logger.warn("KNX bridge handler not found. Cannot handle command without bridge.");
+        if (((KNXBridgeBaseThingHandler) getBridge().getHandler()).hasEvent(channelUID, command, 50, 500)) {
             return;
+        } else {
+            ((KNXBridgeBaseThingHandler) getBridge().getHandler()).logEvent(channelUID, command);
         }
 
         Configuration channelConfiguration = getThing().getChannel(channelUID.getId()).getConfiguration();
@@ -480,6 +491,7 @@ public class KNXGenericThingHandler extends BaseThingHandler
                 Type type = bridge.getType(destination, dpt, asdu);
 
                 if (type != null) {
+                    bridge.logEvent(EventSource.EMPTY, channelUID, type);
                     if (type instanceof State) {
                         updateState(channelUID, (State) type);
                     } else {
