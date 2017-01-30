@@ -163,7 +163,10 @@ public class KNXGenericThingHandler extends BaseThingHandler
     public void dispose() {
         cancelReadFutures();
 
-        ((KNXBridgeBaseThingHandler) getBridge().getHandler()).unregisterGroupAddressListener(this);
+        KNXBridgeBaseThingHandler bridgeHandler = ((KNXBridgeBaseThingHandler) getBridge().getHandler());
+        if (bridgeHandler != null) {
+            bridgeHandler.unregisterGroupAddressListener(this);
+        }
 
         if (pollingJob != null && !pollingJob.isCancelled()) {
             pollingJob.cancel(true);
